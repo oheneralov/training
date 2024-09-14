@@ -483,5 +483,67 @@ while customers:
      print(customers.pop(0))
 #Will print names in the order: Stacy, Charles, Harry, Riya. 
 
+# importing "heapq" to implement heap queue
+import heapq
 
+# initializing list
+li = [5, 7, 9, 1, 3]
+
+# using heapify to convert list into heap
+heapq.heapify(li)
+
+# printing created heap
+print ("The created heap is : ",end="")
+print (list(li))
+
+# using heappush() to push elements into heap
+# pushes 4
+heapq.heappush(li,4)
+
+# printing modified heap
+print ("The modified heap after push is : ",end="")
+print (list(li))
+
+# using heappop() to pop smallest element
+print ("The popped and smallest element is : ",end="")
+print (heapq.heappop(li))
+
+# Python program to introduce Binary Tree
+
+# A class that represents an individual node in a
+# Binary Tree
+class Node:
+    def __init__(self,key):
+        self.left = None
+        self.right = None
+        self.val = key
+
+
+# create root
+root = Node(1)
+''' following is the tree after above statement
+        1
+    / \
+    None None'''
+
+root.left     = Node(2);
+root.right     = Node(3);
+
+''' 2 and 3 become left and right children of 1
+        1
+        / \
+        2     3
+    / \ / \
+None None None None'''
+
+
+root.left.left = Node(4);
+'''4 becomes left child of 2
+        1
+    /     \
+    2         3
+    / \     / \
+4 None None None
+/ \
+None None'''
 
