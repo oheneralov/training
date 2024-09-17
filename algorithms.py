@@ -483,7 +483,7 @@ while customers:
      print(customers.pop(0))
 #Will print names in the order: Stacy, Charles, Harry, Riya. 
 
-# importing "heapq" to implement heap queue
+# 15. importing "heapq" to implement heap queue
 import heapq
 
 # initializing list
@@ -510,7 +510,7 @@ print (heapq.heappop(li))
 
 # Python program to introduce Binary Tree
 
-# A class that represents an individual node in a
+# 16. A class that represents an individual node in a
 # Binary Tree
 class Node:
     def __init__(self,key):
@@ -547,3 +547,125 @@ root.left.left = Node(4);
 / \
 None None'''
 
+# 17. Python program to for tree traversals
+
+# A class that represents an individual node in a
+# Binary Tree
+class Node:
+    def __init__(self, key):
+        self.left = None
+        self.right = None
+        self.val = key
+
+
+# A function to do inorder tree traversal
+def printInorder(root):
+
+    if root:
+
+        # First recur on left child
+        printInorder(root.left)
+
+        # then print the data of node
+        print(root.val),
+
+        # now recur on right child
+        printInorder(root.right)
+
+
+# A function to do postorder tree traversal
+def printPostorder(root):
+
+    if root:
+
+        # First recur on left child
+        printPostorder(root.left)
+
+        # the recur on right child
+        printPostorder(root.right)
+
+        # now print the data of node
+        print(root.val),
+
+
+# A function to do preorder tree traversal
+def printPreorder(root):
+
+    if root:
+
+        # First print the data of node
+        print(root.val),
+
+        # Then recur on left child
+        printPreorder(root.left)
+
+        # Finally recur on right child
+        printPreorder(root.right)
+
+
+# Driver code
+root = Node(1)
+root.left = Node(2)
+root.right = Node(3)
+root.left.left = Node(4)
+root.left.right = Node(5)
+print("Preorder traversal of binary tree is")
+printPreorder(root)
+
+print("\nInorder traversal of binary tree is")
+printInorder(root)
+
+print("\nPostorder traversal of binary tree is")
+printPostorder(root)
+
+# 18. Python program to print level
+# order traversal using Queue
+
+# A node structure
+class Node:
+
+    # A utility function to create a new node
+    def __init__(self ,key):
+        self.data = key
+        self.left = None
+        self.right = None
+
+# Iterative Method to print the
+# height of a binary tree
+def printLevelOrder(root):
+
+    # Base Case
+    if root is None:
+        return
+    
+    # Create an empty queue
+    # for level order traversal
+    queue = []
+
+    # Enqueue Root and initialize height
+    queue.append(root)
+
+    while(len(queue) > 0):
+    
+        # Print front of queue and
+        # remove it from queue
+        print (queue[0].data)
+        node = queue.pop(0)
+
+        # Enqueue left child
+        if node.left is not None:
+            queue.append(node.left)
+
+        # Enqueue right child
+        if node.right is not None:
+            queue.append(node.right)
+
+# Driver Program to test above function
+root = Node(1)
+root.left = Node(2)
+root.right = Node(3)
+root.left.left = Node(4)
+root.left.right = Node(5)
+
+print ("Level Order Traversal of binary tree is -")
+printLevelOrder(root)
