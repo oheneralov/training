@@ -669,3 +669,134 @@ root.left.right = Node(5)
 
 print ("Level Order Traversal of binary tree is -")
 printLevelOrder(root)
+
+
+# find the missing number in an array of integers from 1 to n (where the array has n−1 elements).
+# JS
+function findMissingNumber(arr, n) {
+    // Calculate the expected sum of numbers from 1 to n
+    const expectedSum = (n * (n + 1)) / 2;
+    // Calculate the actual sum of elements in the array
+    const actualSum = arr.reduce((sum, num) => sum + num, 0);
+    // The missing number is the difference
+    return expectedSum - actualSum;
+}
+const arr = [1, 2, 4, 5, 6];  // n = 6
+console.log(findMissingNumber(arr, 6));  // Output: 3
+
+
+# python
+def find_missing_number(arr, n):
+    # Calculate the expected sum of numbers from 1 to n
+    expected_sum = n * (n + 1) // 2
+    
+    # Calculate the actual sum of elements in the array
+    actual_sum = sum(arr)
+    
+    # The missing number is the difference
+    return expected_sum - actual_sum
+
+# Example usage
+arr = [1, 2, 4, 5, 6]  # n = 6
+print(find_missing_number(arr, 6))  # Output: 3
+
+// JavaScript program to print level
+// order traversal using Queue
+
+class Node {
+    constructor(key) {
+        this.data = key;
+        this.left = null;
+        this.right = null;
+    }
+}
+
+// Iterative method to print the
+// level order traversal of a binary tree
+function printLevelOrder(root) {
+
+    if (root === null) return;
+
+    // Create an empty queue for
+    // level order traversal
+    const queue = [];
+
+    // Enqueue root
+    queue.push(root);
+
+    while (queue.length > 0) {
+    
+        // Print front of queue and
+        // remove it from queue
+        const node = queue.shift();
+        console.log(node.data);
+
+        // Enqueue left child
+        if (node.left !== null) {
+            queue.push(node.left);
+        }
+
+        // Enqueue right child
+        if (node.right !== null) {
+            queue.push(node.right);
+        }
+    }
+}
+
+const root = new Node(1);
+root.left = new Node(2);
+const root = new Node(1);
+root.left = new Node(2);
+root.right = new Node(3);
+root.left.left = new Node(4);
+root.left.right = new Node(5);
+printLevelOrder(root);
+
+
+
+# Python program to print level
+# order traversal using Queue
+
+class Node:
+    def __init__(self, key):
+        self.data = key
+        self.left = None
+        self.right = None
+
+# Iterative Method to print the
+# height of a binary tree
+def printLevelOrder(root):
+
+    # Base Case
+    if root is None:
+        return
+
+    # Create an empty queue
+    # for level order traversal
+    queue = []
+
+    # Enqueue Root and initialize height
+    queue.append(root)
+
+    while(len(queue) > 0):
+
+        # Print front of queue and
+        # remove it from queue
+        print(queue[0].data, end=" ")
+        node = queue.pop(0)
+
+        # Enqueue left child
+        if node.left is not None:
+            queue.append(node.left)
+
+        # Enqueue right child
+        if node.right is not None:
+            queue.append(node.right)
+
+if __name__ == '__main__':
+    root = Node(1)
+    root.left = Node(2)
+    root.right = Node(3)
+    root.left.left = Node(4)
+    root.left.right = Node(5)
+    printLevelOrder(root)
