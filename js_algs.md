@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-1. [Two Sum](#Two Sum)  
+1. [Two Sum](#two-sum)  
 2. [Palindrome Number](#palindrome-number)  
 3. [Roman to Integer](#roman-to-integer)  
 4. [Longest Common Prefix](#longest-common-prefix)  
