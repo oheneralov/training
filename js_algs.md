@@ -103,11 +103,7 @@
 99. [Diagonal Traverse](#diagonal-traverse)  
 100. [Matrix Diagonal Sum](#matrix-diagonal-sum)  
 
-Here’s the **Problem Sections** for all 100 LeetCode Easy problems, each with an anchor-matching `##` header and a `To-do` placeholder.
 
-You can append this right after the Table of Contents in your `README.md`.
-
-```markdown
 ## Two Sum  
 To-do  
 
@@ -407,5 +403,5 @@ To-do
 
 ## Matrix Diagonal Sum  
 To-do  
-```
+
 
