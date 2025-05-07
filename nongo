@@ -1,0 +1,81 @@
+1. CREATE
+To add a new document (a user in this case), you use the insertOne() method:
+
+javascript
+Copy
+Edit
+db.users.insertOne({
+  name: "Alice",
+  email: "alice@example.com",
+  age: 28,
+  isActive: true
+});
+You can also insert multiple users at once with insertMany():
+
+javascript
+Copy
+Edit
+db.users.insertMany([
+  { name: "Bob", email: "bob@example.com", age: 35 },
+  { name: "Carol", email: "carol@example.com", age: 24 }
+]);
+2. READ
+To retrieve documents, you use find():
+
+javascript
+Copy
+Edit
+db.users.find(); // Returns all users
+To filter results:
+
+javascript
+Copy
+Edit
+db.users.find({ age: { $gt: 30 } }); // Users older than 30
+To format the results nicely:
+
+javascript
+Copy
+Edit
+db.users.find().pretty();
+3. UPDATE
+To update a user’s information, use updateOne():
+
+javascript
+Copy
+Edit
+db.users.updateOne(
+  { name: "Alice" },
+  { $set: { age: 29, isActive: false } }
+);
+To update multiple users:
+
+javascript
+Copy
+Edit
+db.users.updateMany(
+  { isActive: false },
+  { $set: { status: "inactive" } }
+);
+You can also use operators like $inc to increment values:
+
+javascript
+Copy
+Edit
+db.users.updateOne(
+  { name: "Bob" },
+  { $inc: { age: 1 } }
+);
+4. DELETE
+To remove a single document:
+
+javascript
+Copy
+Edit
+db.users.deleteOne({ name: "Carol" });
+Or remove many:
+
+javascript
+Copy
+Edit
+db.users.deleteMany({ isActive: false });
