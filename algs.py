@@ -1,5 +1,34 @@
 from collections import Counter
 
+# apply function
+def apply_function(arr, func):
+    return [func(x) for x in arr]
+
+# Example: square each number
+result = apply_function([1, 2, 3, 4], lambda x: x ** 2)
+print(result)
+
+
+# sort letters in a string
+def sort_letters(text):
+    letters = [char for char in text if char.isalpha()]
+    return ''.join(sorted(letters))
+
+# sort numbers in list
+def sort_numbers_desc(arr):
+    return sorted(arr, reverse=True)
+
+
+#. Get letters count in a string
+def letter_counts(text):
+    counts = {}
+    for char in text:
+        if char.isalpha():  # consider letters only
+            char = char.lower()
+            counts[char] = counts.get(char, 0) + 1
+    return counts
+
+
 # 1. Two Sum
 def two_sum(nums, target):
     """Find two numbers that add up to a target."""
