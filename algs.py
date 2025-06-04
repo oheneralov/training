@@ -5,8 +5,8 @@ def apply_function(arr, func):
     return [func(x) for x in arr]
 
 # Example: square each number
-result = apply_function([1, 2, 3, 4], lambda x: x ** 2)
-print(result)
+#result = apply_function([1, 2, 3, 4], lambda x: x ** 2)
+#print(result)
 
 
 # sort letters in a string
@@ -27,6 +27,35 @@ def letter_counts(text):
             char = char.lower()
             counts[char] = counts.get(char, 0) + 1
     return counts
+
+# group by date and sort by price
+from collections import defaultdict
+
+def group_by_date_sorted_by_price(items):
+    grouped = defaultdict(list)
+    for item in items:
+        grouped[item['date']].append(item)
+    
+    # Sort each group by price
+    for date in grouped:
+        grouped[date].sort(key=lambda x: x['price'])
+    
+    return dict(grouped)
+
+"""
+data = [
+    {'date': '2025-06-01', 'price': 20, 'item': 'B'},
+    {'date': '2025-06-01', 'price': 10, 'item': 'A'},
+    {'date': '2025-06-01', 'price': 15, 'item': 'C'},
+    {'date': '2025-06-02', 'price': 10, 'item': 'D'},
+    {'date': '2025-06-02', 'price': 5,  'item': 'E'},
+]
+
+grouped = group_by_date_sorted_by_price(data)
+for date, items in grouped.items():
+    print(f"{date}: {items}")
+
+"""
 
 
 # 1. Two Sum
