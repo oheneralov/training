@@ -1,6 +1,6 @@
 from collections import Counter
 
-# apply function
+# apply function .
 def apply_function(arr, func):
     return [func(x) for x in arr]
 
