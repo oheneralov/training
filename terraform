@@ -1,0 +1,172 @@
+# Terraform configuration for a Node.js app on AWS with EKS and full infrastructure
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+# S3 Buckets for environments
+resource "aws_s3_bucket" "test_bucket" {
+  bucket = "nodejs-app-test-bucket"
+}
+
+resource "aws_s3_bucket" "prod_bucket" {
+  bucket = "nodejs-app-prod-bucket"
+}
+
+# IAM Roles and Policies would be defined here (omitted for brevity)
+
+# VPC and networking (simplified)
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.1.1"
+
+  name = "nodejs-vpc"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["us-east-1a", "us-east-1b"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+
+  enable_nat_gateway = true
+  single_nat_gateway = true
+
+  tags = {
+    Terraform = "true"
+    Environment = "dev"
+  }
+}
+
+# Security Groups
+resource "aws_security_group" "devops_sg" {
+  name        = "devops-sg"
+  description = "Security group for DevOps"
+  vpc_id      = module.vpc.vpc_id
+}
+
+resource "aws_security_group" "developers_sg" {
+  name        = "developers-sg"
+  description = "Security group for Developers"
+  vpc_id      = module.vpc.vpc_id
+}
+
+resource "aws_security_group" "testers_sg" {
+  name        = "testers-sg"
+  description = "Security group for Testers"
+  vpc_id      = module.vpc.vpc_id
+}
+
+# EKS Cluster
+module "eks" {
+  source          = "terraform-aws-modules/eks/aws"
+  version         = "20.8.5"
+
+  cluster_name    = "nodejs-eks"
+  cluster_version = "1.29"
+
+  subnets         = module.vpc.private_subnets
+  vpc_id          = module.vpc.vpc_id
+
+  eks_managed_node_groups = {
+    default = {
+      desired_size = 2
+      max_size     = 3
+      min_size     = 1
+
+      instance_types = ["t3.medium"]
+      capacity_type  = "ON_DEMAND"
+    }
+  }
+}
+
+# RDS MySQL Instance
+resource "aws_db_instance" "mysql" {
+  identifier        = "nodejs-db"
+  engine            = "mysql"
+  instance_class    = "db.t3.micro"
+  allocated_storage = 20
+  username          = "admin"
+  password          = "Password123!"
+  skip_final_snapshot = true
+  publicly_accessible = false
+  vpc_security_group_ids = [aws_security_group.devops_sg.id]
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+}
+
+resource "aws_db_subnet_group" "main" {
+  name       = "nodejs-db-subnets"
+  subnet_ids = module.vpc.private_subnets
+}
+
+# DynamoDB
+resource "aws_dynamodb_table" "app_table" {
+  name         = "NodeAppTable"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+}
+
+# SQS Queue
+resource "aws_sqs_queue" "app_queue" {
+  name = "nodejs-app-queue"
+}
+
+# SNS Topic
+resource "aws_sns_topic" "app_topic" {
+  name = "nodejs-app-topic"
+}
+
+# EventBridge Rule
+resource "aws_cloudwatch_event_rule" "app_event" {
+  name        = "nodejs-app-event"
+  description = "Triggers based on app event pattern"
+  event_pattern = <<EOF
+{
+  "source": ["custom.nodejsapp"]
+}
+EOF
+}
+
+# Cloud Monitoring (CloudWatch Alarm example)
+resource "aws_cloudwatch_metric_alarm" "cpu_alarm" {
+  alarm_name          = "high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "120"
+  statistic           = "Average"
+  threshold           = "80"
+  alarm_description   = "This alarm triggers if CPU usage is high"
+  actions_enabled     = true
+  alarm_actions       = [aws_sns_topic.app_topic.arn]
+  dimensions = {
+    InstanceId = "i-1234567890abcdef0"
+  }
+}
+
+# Load Balancer - typically created automatically with EKS Ingress Controller like ALB Ingress
+# You can integrate ALB using annotations in Kubernetes manifest (not Terraform directly)
+
+# Autoscaling - managed via EKS/K8s HPA (define in manifest)
+# You can also define EC2 AutoScaling groups outside of EKS if needed (not included here)
+
+# Outputs
+output "eks_cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "rds_endpoint" {
+  value = aws_db_instance.mysql.endpoint
+}
+
+output "sqs_url" {
+  value = aws_sqs_queue.app_queue.id
+}
+
+output "sns_topic_arn" {
+  value = aws_sns_topic.app_topic.arn
+}
