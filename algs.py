@@ -1,18 +1,17 @@
 from collections import Counter
 
-# apply function .
-def apply_function(arr, func):
-    return [func(x) for x in arr]
+numbers = [1, 2, 3, 4, 5]
+squared = [x**2 for x in numbers]
+print(squared)
 
-# Example: square each number
-#result = apply_function([1, 2, 3, 4], lambda x: x ** 2)
-#print(result)
+numbers = [1, 2, 3, 4, 5]
+doubled = list(map(lambda x: x * 2, numbers))
+print(doubled)
 
 
-# sort letters in a string
-def sort_letters(text):
-    letters = [char for char in text if char.isalpha()]
-    return ''.join(sorted(letters))
+text = "machinelearning"
+sorted_text = ''.join(sorted(text, reverse=True))
+print(sorted_text)
 
 # sort numbers in list
 def sort_numbers_desc(arr):
