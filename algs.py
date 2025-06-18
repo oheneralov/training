@@ -27,6 +27,12 @@ def letter_counts(text):
             counts[char] = counts.get(char, 0) + 1
     return counts
 
+from collections import Counter
+
+text = "machinelearning"
+letter_counts = Counter(text)
+print(letter_counts)
+
 # group by date and sort by price
 from collections import defaultdict
 
