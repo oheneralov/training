@@ -156,7 +156,7 @@ Here are **common JavaScript interview questions related to sorting and grouping
 
 ## 🔢 **Sorting Questions**
 
-### 1. **Sort Numbers Ascending / Descending**
+### 11. **Sort Numbers Ascending / Descending**
 
 **Question:** Sort an array of numbers in ascending or descending order.
 
@@ -172,7 +172,7 @@ nums.sort((a, b) => b - a);
 
 ---
 
-### 2. **Sort Strings Alphabetically**
+### 12. **Sort Strings Alphabetically**
 
 **Question:** Sort an array of strings alphabetically (case-insensitive).
 
@@ -183,7 +183,7 @@ words.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
 ---
 
-### 3. **Sort by Object Property**
+### 13. **Sort by Object Property**
 
 **Question:** Sort an array of objects by a property, like age or name.
 
@@ -198,7 +198,7 @@ people.sort((a, b) => a.age - b.age); // Sort by age ascending
 
 ---
 
-### 4. **Custom Sort (e.g., Even Numbers First)**
+### 14. **Custom Sort (e.g., Even Numbers First)**
 
 **Question:** Sort array so even numbers come before odd.
 
@@ -211,14 +211,14 @@ nums.sort((a, b) => (a % 2) - (b % 2));
 
 ## 🧮 **Grouping Questions**
 
-### 5. **Group by Property**
+### 15. **Group by Property**
 
 **Question:** Group array of objects by a property (e.g., group users by role).
 
 ```js
 const users = [
   { name: 'Alice', role: 'admin' },
-  { name: 'Bob', role: 'user' },
+  { n1ame: 'Bob', role: 'user' },
   { name: 'Charlie', role: 'admin' }
 ];
 
@@ -230,7 +230,7 @@ const grouped = users.reduce((acc, user) => {
 
 ---
 
-### 6. **Group Numbers by Even/Odd**
+### 16. **Group Numbers by Even/Odd**
 
 **Question:** Group numbers into even and odd arrays.
 
@@ -246,7 +246,7 @@ const grouped = nums.reduce((acc, num) => {
 
 ---
 
-### 7. **Group Words by First Letter**
+### 17. **Group Words by First Letter**
 
 **Question:** Group words by their starting letter.
 
@@ -262,7 +262,7 @@ const grouped = words.reduce((acc, word) => {
 
 ---
 
-### 8. **Count Frequency of Elements**
+### 18. **Count Frequency of Elements**
 
 **Question:** Count how many times each value appears in an array.
 
@@ -284,7 +284,7 @@ Here’s a **simple and clear example of prototypical inheritance in JavaScript*
 ## 🔧 **Example: Animal → Dog**
 
 ```js
-// Parent constructor
+// 19 Parent constructor
 function Animal(name) {
   this.name = name;
 }
