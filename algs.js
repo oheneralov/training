@@ -503,5 +503,52 @@ tree.insert(5);
 console.log("Inorder:");
 inorder(tree.root);
 ```
+To **optimize** the quicksort implementation in JavaScript, we can make several improvements while preserving clarity:
+
+---
+
+### ✅ Optimization Goals:
+
+1. **Avoid slicing** multiple times (saves memory).
+2. **Use a random pivot** (prevents worst-case on sorted/reversed arrays).
+3. **Partition in a single pass** (instead of calling `.filter()` twice).
+
+---
+
+### ✅ Optimized Quicksort with Single-Pass Partition and Random Pivot:
+
+```javascript
+function partition(arr, pivot) {
+  const left = [];
+  const right = [];
+
+  for (const el of arr) {
+    if (el < pivot) left.push(el);
+    else right.push(el);
+  }
+
+  return [left, right];
+}
+
+function quicksort(arr) {
+  if (arr.length <= 1) return arr;
+
+  // Choose a random pivot
+  const pivotIndex = Math.floor(Math.random() * arr.length);
+  const pivot = arr[pivotIndex];
+
+  // Remove the pivot element for partitioning
+  const rest = arr.slice(0, pivotIndex).concat(arr.slice(pivotIndex + 1));
+
+  const [left, right] = partition(rest, pivot);
+
+  return [...quicksort(left), pivot, ...quicksort(right)];
+}
+
+// Example usage
+const array = [10, 5, 2, 3, 7, 6, 4, 1, 9, 8];
+const sorted = quicksort(array);
+console.log(sorted); // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
 
 
