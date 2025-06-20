@@ -354,4 +354,155 @@ class Dog extends Animal {
 }
 ```
 
+Here are **basic implementations in JavaScript** for:
+
+1. ✅ **Stack**
+2. 🌳 **Binary Tree (with node insertion)**
+3. 🔁 **Binary Tree Traversals** (preorder, inorder, postorder, level-order)
+
+---
+
+## ✅ 1. Stack (LIFO)
+
+```js
+class Stack {
+  constructor() {
+    this.items = [];
+  }
+
+  push(item) {
+    this.items.push(item);
+  }
+
+  pop() {
+    return this.items.pop();
+  }
+
+  peek() {
+    return this.items[this.items.length - 1];
+  }
+
+  isEmpty() {
+    return this.items.length === 0;
+  }
+
+  size() {
+    return this.items.length;
+  }
+}
+
+// Usage
+const stack = new Stack();
+stack.push(10);
+stack.push(20);
+console.log(stack.pop()); // 20
+console.log(stack.peek()); // 10
+```
+
+---
+
+## 🌳 2. Binary Tree (with insert)
+
+```js
+class TreeNode {
+  constructor(value) {
+    this.value = value;
+    this.left = null;
+    this.right = null;
+  }
+}
+
+class BinaryTree {
+  constructor() {
+    this.root = null;
+  }
+
+  insert(value) {
+    const newNode = new TreeNode(value);
+    if (!this.root) return (this.root = newNode);
+
+    const queue = [this.root];
+    while (queue.length) {
+      const current = queue.shift();
+      if (!current.left) {
+        current.left = newNode;
+        return;
+      } else if (!current.right) {
+        current.right = newNode;
+        return;
+      }
+      queue.push(current.left, current.right);
+    }
+  }
+}
+```
+
+---
+
+## 🔁 3. Binary Tree Traversals
+
+### 🔼 Preorder (Root → Left → Right)
+
+```js
+function preorder(node) {
+  if (!node) return;
+  console.log(node.value);
+  preorder(node.left);
+  preorder(node.right);
+}
+```
+
+### 🔽 Inorder (Left → Root → Right)
+
+```js
+function inorder(node) {
+  if (!node) return;
+  inorder(node.left);
+  console.log(node.value);
+  inorder(node.right);
+}
+```
+
+### ⬇️ Postorder (Left → Right → Root)
+
+```js
+function postorder(node) {
+  if (!node) return;
+  postorder(node.left);
+  postorder(node.right);
+  console.log(node.value);
+}
+```
+
+### 🌐 Level-order (BFS)
+
+```js
+function levelOrder(root) {
+  if (!root) return;
+  const queue = [root];
+  while (queue.length) {
+    const node = queue.shift();
+    console.log(node.value);
+    if (node.left) queue.push(node.left);
+    if (node.right) queue.push(node.right);
+  }
+}
+```
+
+---
+
+## 🧪 Example Usage
+
+```js
+const tree = new BinaryTree();
+tree.insert(1);
+tree.insert(2);
+tree.insert(3);
+tree.insert(4);
+tree.insert(5);
+
+console.log("Inorder:");
+inorder(tree.root);
+```
+
 
