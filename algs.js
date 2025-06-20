@@ -7,21 +7,20 @@ Here are **10 of the most frequently asked algorithm questions** in JavaScript t
 **Problem:** Given an array of numbers and a target, return the indices of two numbers that add up to the target.
 **Topic:** Hash Map
 **Example:**
-
-```js
-function twoSum(nums, target) {
+function getIndicesOf2Sum(numsArr, target) {
   const map = {};
-  for (let i = 0; i < nums.length; i++) {
-    const complement = target - nums[i];
-    if (map[complement] !== undefined) {
-      return [map[complement], i];
+  for (let i = 0; i < numsArr.length; i++) {
+    const currentElem = numsArr[i];
+    const diff = target - currentElem;
+    if (map[diff] !== undefined) {
+      return [map[diff], i];
     }
-    map[nums[i]] = i;
+    map[currentElem] = i;
   }
 }
-```
 
----
+const result  = getIndicesOf2Sum([1, 2, 0, 7, 15], 9);
+console.log(result); // Output: [0, 1]
 
 ### 2. **Reverse a String**
 
