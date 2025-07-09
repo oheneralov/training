@@ -1,3 +1,51 @@
+from collections import defaultdict
+
+import re
+
+def sort_logs_by_service(log_text):
+    # Regex to extract log components
+    log_pattern = r"^(.*?)\s+(INFO|WARN|ERROR|DEBUG)\s+\[(.*?)\]\s+(.*)$"
+    
+    logs = []
+    for line in log_text.strip().splitlines():
+        match = re.match(log_pattern, line)
+        if match:
+            timestamp, level, service, message = match.groups()
+            # convert string to object
+            logs.append({
+                "timestamp": timestamp,
+                "level": level,
+                "service": service,
+                "message": message,
+                "original": line
+            })
+
+    # Sort by service name
+    sorted_logs = sorted(logs, key=lambda x: x["service"])
+
+    # Return sorted original log lines
+    return [entry["original"] for entry in sorted_logs]
+
+with open('log.txt', 'r') as f:
+    dict = defaultdict(str)
+    log_text = f.read()
+    print(sort_logs_by_service(log_text))
+    # save to file
+    with open('sorted_log.txt', 'w') as sorted_file:
+        sorted_file.write('\n'.join(sort_logs_by_service(log_text)))
+
+
+from locust import HttpUser, task, between
+
+class MyUser(HttpUser):
+    wait_time = between(3,5)
+    host = "https://google.com"
+
+    @task
+    def index(self):
+        self.client.get(self.host)
+
+
 from collections import Counter
 
 numbers = [1, 2, 3, 4, 5]
