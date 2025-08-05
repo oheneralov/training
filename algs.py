@@ -442,3 +442,13 @@ def count_and_say(n):
         current.append(f"{count}{result[-1]}")
         result = ''.join(current)
     return result
+
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const response = await client.responses.create({
+    model: "gpt-4.1-mini",
+    input: "Write a one-sentence bedtime story about a unicorn."
+});
+
+console.log(response.output_text);
