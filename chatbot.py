@@ -2,7 +2,7 @@
 export OPENAI_API_TYPE=azure
 export OPENAI_API_BASE=https://<your-resource-name>.openai.azure.com/
 export OPENAI_API_KEY=<your-azure-key>
-export OPENAI_API_VERSION=2023-07-01-preview
+export OPENAI_API_VERSION=2023
 """
 
 from typing import Annotated
