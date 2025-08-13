@@ -1,0 +1,108 @@
+import json
+from typing import Annotated
+from typing_extensions import TypedDict
+from pydantic import BaseModel, Field
+
+from langchain.chat_models import AzureChatOpenAI
+from langchain_core.messages import ToolMessage
+from langchain.tools import BaseTool
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+
+
+# --------------------------
+# 1. Define pedantic schema
+# --------------------------
+class DistanceInput(BaseModel):
+    trip: dict = Field(
+        ...,
+        description="Trip data containing distance details",
+        example={"distance_km": 15.0}
+    )
+
+# --------------------------
+# 2. Define the BaseTool
+# --------------------------
+class KmToMilesTool(BaseTool):
+    name = "convert_km_to_miles"
+    description = "Convert kilometers to miles from nested JSON input."
+    args_schema = DistanceInput
+
+    def _run(self, trip: dict):
+        km = float(trip["distance_km"])
+        miles = km * 0.621371
+        return {"miles": round(miles, 2)}
+
+    async def _arun(self, trip: dict):
+        raise NotImplementedError("Async not implemented.")
+
+
+# --------------------------
+# 3. Create the tool
+# --------------------------
+tools = [KmToMilesTool()]
+
+# --------------------------
+# 4. AzureChatOpenAI with tools bound
+# --------------------------
+llm = AzureChatOpenAI(
+    deployment_name="gpt-mini",
+    model="gpt-35-turbo",
+    api_version="2023-07-01-preview",
+    temperature=0,
+).bind_tools(tools)
+
+# --------------------------
+# 5. LangGraph State
+# --------------------------
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+# --------------------------
+# 6. Chatbot node
+# --------------------------
+def chatbot(state: State):
+    messages = state["messages"]
+    response = llm.invoke(messages)
+
+    new_messages = [response]
+
+    if getattr(response, "tool_calls", None):
+        for tool_call in response.tool_calls:
+            tool = next((t for t in tools if t.name == tool_call["name"]), None)
+            if tool:
+                args = tool_call["args"]
+                if isinstance(args, str):
+                    args = json.loads(args)  # ensure dict
+                result = tool.invoke(args)
+                new_messages.append(
+                    ToolMessage(content=json.dumps(result), tool_call_id=tool_call["id"])
+                )
+
+        # Rerun with tool result
+        response = llm.invoke(messages + new_messages)
+        new_messages.append(response)
+
+    return {"messages": messages + new_messages}
+
+# --------------------------
+# 7. LangGraph definition
+# --------------------------
+graph_builder = StateGraph(State)
+graph_builder.add_node("chatbot", chatbot)
+graph_builder.add_edge(START, "chatbot")
+graph_builder.add_edge("chatbot", END)
+graph = graph_builder.compile()
+
+# --------------------------
+# 8. Run
+# --------------------------
+if __name__ == "__main__":
+    state = {
+        "messages": [
+            {"role": "user", "content": "I have a trip object: {\"distance_km\": 15}. Can you convert it to miles?"}
+        ]
+    }
+    final_state = graph.invoke(state)
+    for msg in final_state["messages"]:
+        print(f"{msg.type.upper()}: {msg.content}" if hasattr(msg, "type") else msg)
