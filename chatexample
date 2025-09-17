@@ -1,58 +1,94 @@
+Perfect 🚀 Let’s redo the component using **TailwindCSS** so you don’t need custom CSS.
+Here’s a clean Vue 3 + Tailwind version of your chatbot interface:
 
-With Vue Router, each menu item points to a route, and the right-hand section shows a different component depending on the route.
-
-1. Install Vue Router
-npm install vue-router
-
-2. Define routes
-
-Create src/router/index.js:
-
-import { createRouter, createWebHistory } from 'vue-router'
-import Dashboard from '../views/Dashboard.vue'
-import Settings from '../views/Settings.vue'
-import Profile from '../views/Profile.vue'
-
-const routes = [
-  { path: '/', component: Dashboard },
-  { path: '/settings', component: Settings },
-  { path: '/profile', component: Profile }
-]
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
-
-export default router
-
-3. Update main.js
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
-import './index.css'
-
-createApp(App).use(router).mount('#app')
-
-4. Adjust App.vue
+```vue
 <template>
-  <div class="h-screen flex">
-    <!-- Left menu -->
-    <aside class="w-1/4 bg-gray-100 p-4 border-r">
-      <h2 class="text-xl font-bold mb-6">Menu</h2>
-      <ul class="space-y-4">
-        <li><router-link to="/">Dashboard</router-link></li>
-        <li><router-link to="/settings">Settings</router-link></li>
-        <li><router-link to="/profile">Profile</router-link></li>
-      </ul>
-    </aside>
+  <div class="max-w-2xl mx-auto p-6 font-sans">
+    <!-- Header -->
+    <header class="text-center mb-6">
+      <h1 class="text-2xl font-bold">Chatbot Interface</h1>
+    </header>
 
-    <!-- Right content changes per route -->
-    <main class="w-3/4 p-6 flex flex-col gap-6">
-      <router-view /> <!-- This renders the right component -->
-    </main>
+    <!-- Chat input area -->
+    <div class="flex flex-col mb-8">
+      <textarea
+        v-model="message"
+        placeholder="Type your message..."
+        class="w-full h-28 resize-none p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+      ></textarea>
+
+      <div class="flex justify-between mt-3 space-x-2">
+        <button
+          @click="addFilter"
+          class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg"
+        >
+          Add Filter
+        </button>
+        <button
+          @click="adjustPreferences"
+          class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg"
+        >
+          Adjust Preferences
+        </button>
+        <button
+          @click="sendMessage"
+          class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+
+    <!-- Agent picker -->
+    <div>
+      <h2 class="text-lg font-semibold mb-3">Pick the best agent</h2>
+      <div class="grid grid-cols-3 gap-3">
+        <button
+          v-for="(agent, index) in agents"
+          :key="index"
+          @click="pickAgent(agent)"
+          class="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg"
+        >
+          {{ agent }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
+<script setup>
+import { ref } from "vue";
 
-Now when you click menu items, the right section changes.
+const message = ref("");
+const agents = ["Agent A", "Agent B", "Agent C"];
+
+function addFilter() {
+  alert("Add Filter clicked");
+}
+
+function adjustPreferences() {
+  alert("Adjust Preferences clicked");
+}
+
+function sendMessage() {
+  if (message.value.trim() === "") {
+    alert("Please type a message.");
+    return;
+  }
+  alert("Message sent: " + message.value);
+  message.value = "";
+}
+
+function pickAgent(agent) {
+  alert("You picked: " + agent);
+}
+</script>
+```
+
+✨ This uses Tailwind utilities only—no scoped CSS.
+
+* Buttons look modern with hover states.
+* Layout is responsive with `grid` for the agent choices.
+* Focus states on textarea.
+
+Do you also want me to add a **chat history section above the textarea** (messages with bubbles), styled with Tailwind, so it looks like a real chat?
