@@ -1,94 +1,85 @@
-Perfect 🚀 Let’s redo the component using **TailwindCSS** so you don’t need custom CSS.
-Here’s a clean Vue 3 + Tailwind version of your chatbot interface:
+
+Olexandr Heneralov <oheneralov@gmail.com>
+11:49 (3 хвилини тому)
+кому мені
+
+In Vue 3, you can add drag-and-drop file upload with just a few event listeners on a container (like `div`) that acts as the drop zone. Since you already have file upload working, you just need to wire the drag & drop events to your existing logic.
+
+Here’s a **minimal Vue 3 example**:
 
 ```vue
 <template>
-  <div class="max-w-2xl mx-auto p-6 font-sans">
-    <!-- Header -->
-    <header class="text-center mb-6">
-      <h1 class="text-2xl font-bold">Chatbot Interface</h1>
-    </header>
-
-    <!-- Chat input area -->
-    <div class="flex flex-col mb-8">
-      <textarea
-        v-model="message"
-        placeholder="Type your message..."
-        class="w-full h-28 resize-none p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-      ></textarea>
-
-      <div class="flex justify-between mt-3 space-x-2">
-        <button
-          @click="addFilter"
-          class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg"
-        >
-          Add Filter
-        </button>
-        <button
-          @click="adjustPreferences"
-          class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg"
-        >
-          Adjust Preferences
-        </button>
-        <button
-          @click="sendMessage"
-          class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg"
-        >
-          Send
-        </button>
-      </div>
-    </div>
-
-    <!-- Agent picker -->
-    <div>
-      <h2 class="text-lg font-semibold mb-3">Pick the best agent</h2>
-      <div class="grid grid-cols-3 gap-3">
-        <button
-          v-for="(agent, index) in agents"
-          :key="index"
-          @click="pickAgent(agent)"
-          class="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg"
-        >
-          {{ agent }}
-        </button>
-      </div>
-    </div>
+  <div 
+    class="upload-container"
+    @dragover.prevent="onDragOver"
+    @dragleave.prevent="onDragLeave"
+    @drop.prevent="onDrop"
+    :class="{ 'dragover': isDragOver }"
+  >
+    <p v-if="!files.length">Drag & Drop files here or click to select</p>
+    <ul v-else>
+      <li v-for="(file, index) in files" :key="index">{{ file.name }}</li>
+    </ul>
+    <input 
+      type="file" 
+      ref="fileInput"
+      multiple 
+      @change="onFileChange"
+      hidden
+    />
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref } from 'vue'
 
-const message = ref("");
-const agents = ["Agent A", "Agent B", "Agent C"];
+const files = ref([])
+const isDragOver = ref(false)
+const fileInput = ref(null)
 
-function addFilter() {
-  alert("Add Filter clicked");
+const onDragOver = () => {
+  isDragOver.value = true
 }
 
-function adjustPreferences() {
-  alert("Adjust Preferences clicked");
+const onDragLeave = () => {
+  isDragOver.value = false
 }
 
-function sendMessage() {
-  if (message.value.trim() === "") {
-    alert("Please type a message.");
-    return;
-  }
-  alert("Message sent: " + message.value);
-  message.value = "";
+const onDrop = (event) => {
+  isDragOver.value = false
+  handleFiles(event.dataTransfer.files)
 }
 
-function pickAgent(agent) {
-  alert("You picked: " + agent);
+const onFileChange = (event) => {
+  handleFiles(event.target.files)
+}
+
+const handleFiles = (selectedFiles) => {
+  files.value = [...files.value, ...selectedFiles]
 }
 </script>
+
+<style>
+.upload-container {
+  border: 2px dashed #999;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+.upload-container.dragover {
+  border-color: #42b983;
+  background-color: #f0fff5;
+}
+</style>
 ```
 
-✨ This uses Tailwind utilities only—no scoped CSS.
+✅ What’s happening here:
 
-* Buttons look modern with hover states.
-* Layout is responsive with `grid` for the agent choices.
-* Focus states on textarea.
+* `@dragover.prevent` → allows drop by preventing default.
+* `@drop.prevent` → captures files from `event.dataTransfer.files`.
+* A hidden `<input type="file">` is still used for click-to-upload fallback.
+* A simple state (`isDragOver`) toggles styles on drag hover.
+* Dropped or selected files are stored in `files`.
 
-Do you also want me to add a **chat history section above the textarea** (messages with bubbles), styled with Tailwind, so it looks like a real chat?
+---
