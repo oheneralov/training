@@ -1,85 +1,58 @@
-
-Olexandr Heneralov <oheneralov@gmail.com>
-11:49 (3 хвилини тому)
-кому мені
-
-In Vue 3, you can add drag-and-drop file upload with just a few event listeners on a container (like `div`) that acts as the drop zone. Since you already have file upload working, you just need to wire the drag & drop events to your existing logic.
-
-Here’s a **minimal Vue 3 example**:
-
-```vue
 <template>
-  <div 
-    class="upload-container"
-    @dragover.prevent="onDragOver"
-    @dragleave.prevent="onDragLeave"
-    @drop.prevent="onDrop"
-    :class="{ 'dragover': isDragOver }"
-  >
-    <p v-if="!files.length">Drag & Drop files here or click to select</p>
-    <ul v-else>
-      <li v-for="(file, index) in files" :key="index">{{ file.name }}</li>
-    </ul>
-    <input 
-      type="file" 
-      ref="fileInput"
-      multiple 
-      @change="onFileChange"
-      hidden
-    />
+  <div class="form-container">
+    <!-- Button to toggle panel -->
+    <button @click="showPanel = !showPanel">
+      {{ showPanel ? 'Hide Panel' : 'Show Panel' }}
+    </button>
+
+    <!-- Panel above form -->
+    <div v-if="showPanel" class="panel">
+      <h3>Information Panel</h3>
+      <p>This is a panel displayed above the form.</p>
+    </div>
+
+    <!-- Your form -->
+    <form @submit.prevent="submitForm" class="form">
+      <label>
+        Name:
+        <input type="text" v-model="formData.name" />
+      </label>
+      <label>
+        Email:
+        <input type="email" v-model="formData.email" />
+      </label>
+      <button type="submit">Submit</button>
+    </form>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 
-const files = ref([])
-const isDragOver = ref(false)
-const fileInput = ref(null)
+const showPanel = ref(false)
 
-const onDragOver = () => {
-  isDragOver.value = true
-}
+const formData = ref({
+  name: '',
+  email: ''
+})
 
-const onDragLeave = () => {
-  isDragOver.value = false
-}
-
-const onDrop = (event) => {
-  isDragOver.value = false
-  handleFiles(event.dataTransfer.files)
-}
-
-const onFileChange = (event) => {
-  handleFiles(event.target.files)
-}
-
-const handleFiles = (selectedFiles) => {
-  files.value = [...files.value, ...selectedFiles]
+const submitForm = () => {
+  console.log('Form submitted:', formData.value)
 }
 </script>
 
-<style>
-.upload-container {
-  border: 2px dashed #999;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  cursor: pointer;
+<style scoped>
+.form-container {
+  width: 400px;
+  margin: auto;
 }
-.upload-container.dragover {
-  border-color: #42b983;
-  background-color: #f0fff5;
+
+.panel {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
 }
 </style>
 ```
-
-✅ What’s happening here:
-
-* `@dragover.prevent` → allows drop by preventing default.
-* `@drop.prevent` → captures files from `event.dataTransfer.files`.
-* A hidden `<input type="file">` is still used for click-to-upload fallback.
-* A simple state (`isDragOver`) toggles styles on drag hover.
-* Dropped or selected files are stored in `files`.
-
----
