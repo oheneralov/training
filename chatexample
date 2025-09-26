@@ -1,12 +1,20 @@
 // WebSocket utility functions
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
+
+// Types
+interface QueryParameters {
+  token: string | null
+  apikey: string | null
+}
+
+type LogFunction = (message: string) => void
 
 // WebSocket state
-let socket = null
-const connected = ref(false)
+let socket: WebSocket | null = null
+const connected: Ref<boolean> = ref(false)
 
 // --- Helper functions ---
-function getQueryParameters() {
+function getQueryParameters(): QueryParameters {
   const urlParams = new URLSearchParams(window.location.search)
   return {
     token: urlParams.get('token'),
@@ -14,8 +22,8 @@ function getQueryParameters() {
   }
 }
 
-function buildWebSocketUrl() {
-  const baseUrl = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
+function buildWebSocketUrl(): string {
+  const baseUrl: string = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
   const params = getQueryParameters()
   
   // Only add query parameters if they exist
@@ -28,13 +36,13 @@ function buildWebSocketUrl() {
 }
 
 // --- WebSocket management functions ---
-function initConnection(url = null, addLog) {
+function initConnection(url: string | null = null, addLog: LogFunction): void {
   if (socket && socket.readyState === WebSocket.OPEN) {
     addLog('WebSocket already open')
     return
   }
 
-  const wsUrl = url || buildWebSocketUrl()
+  const wsUrl: string = url || buildWebSocketUrl()
   socket = new WebSocket(wsUrl)
 
   socket.addEventListener('open', () => {
@@ -42,11 +50,11 @@ function initConnection(url = null, addLog) {
     addLog(`Connected to ${wsUrl}`)
   })
 
-  socket.addEventListener('message', (ev) => {
+  socket.addEventListener('message', (ev: MessageEvent) => {
     addLog('Received: ' + ev.data)
   })
 
-  socket.addEventListener('close', (ev) => {
+  socket.addEventListener('close', (ev: CloseEvent) => {
     connected.value = false
     addLog(`Socket closed (code=${ev.code})`)
   })
@@ -56,7 +64,7 @@ function initConnection(url = null, addLog) {
   })
 }
 
-function connectSocket(addLog) {
+function connectSocket(addLog: LogFunction): void {
   try {
     initConnection(null, addLog)
   } catch (err) {
@@ -64,7 +72,7 @@ function connectSocket(addLog) {
   }
 }
 
-function disconnectSocket(addLog) {
+function disconnectSocket(addLog: LogFunction): void {
   if (!socket) return
   try {
     socket.close()
@@ -76,9 +84,9 @@ function disconnectSocket(addLog) {
   }
 }
 
-function sendWSMessage(payload, addLog) {
+function sendWSMessage(payload: string | object, addLog: LogFunction): boolean {
   // ensure payload is string
-  const msg = typeof payload === 'string' ? payload : JSON.stringify(payload)
+  const msg: string = typeof payload === 'string' ? payload : JSON.stringify(payload)
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     addLog('Cannot send: socket is not open')
     return false
@@ -95,7 +103,7 @@ function sendWSMessage(payload, addLog) {
 }
 
 // convenience wrapper
-function sendMessageToServer(message, addLog) {
+function sendMessageToServer(message: string | object, addLog: LogFunction): boolean {
   return sendWSMessage(message, addLog)
 }
 
@@ -107,3 +115,5 @@ export {
   sendWSMessage,
   sendMessageToServer
 }
+
+export type { QueryParameters, LogFunction }
