@@ -1,4 +1,3 @@
-
 // WebSocket utility functions
 import { ref, type Ref } from 'vue'
 
@@ -9,6 +8,12 @@ interface QueryParameters {
 }
 
 type LogFunction = (message: string) => void
+
+// Enhanced logging function that logs to both UI and console
+function logMessage(message: string, addLog: LogFunction): void {
+  addLog(message)
+  console.log(`[WebSocket] ${message}`)
+}
 
 // WebSocket state
 let socket: WebSocket | null = null
@@ -39,7 +44,7 @@ function buildWebSocketUrl(): string {
 // --- WebSocket management functions ---
 function initConnection(url: string | null = null, addLog: LogFunction): void {
   if (socket && socket.readyState === WebSocket.OPEN) {
-    addLog('WebSocket already open')
+    logMessage('WebSocket already open', addLog)
     return
   }
 
@@ -48,11 +53,11 @@ function initConnection(url: string | null = null, addLog: LogFunction): void {
 
   socket.addEventListener('open', () => {
     connected.value = true
-    addLog(`Connected to ${wsUrl}`)
+    logMessage(`Connected to ${wsUrl}`, addLog)
   })
 
   socket.addEventListener('message', (ev: MessageEvent) => {
-    addLog('Received: ' + ev.data)
+    logMessage('Received: ' + ev.data, addLog)
   })
 
   socket.addEventListener('close', (ev: CloseEvent) => {
@@ -98,28 +103,28 @@ function initConnection(url: string | null = null, addLog: LogFunction): void {
         break
     }
     
-    addLog(closeMessage)
+    logMessage(closeMessage, addLog)
     if (hint) {
-      addLog(`💡 Hint: ${hint}`)
+      logMessage(`💡 Hint: ${hint}`, addLog)
     }
   })
 
   socket.addEventListener('error', () => {
-    addLog('❌ Socket error occurred')
+    logMessage('❌ Socket error occurred', addLog)
     
     // Check if we have connection details to provide better error context
     const params = getQueryParameters()
     if (!params.token && !params.apikey) {
-      addLog('💡 Hint: No authentication parameters found in URL. Add ?token=YOUR_TOKEN&apikey=YOUR_API_KEY to the page URL')
+      logMessage('💡 Hint: No authentication parameters found in URL. Add ?token=YOUR_TOKEN&apikey=YOUR_API_KEY to the page URL', addLog)
     } else if (!params.token) {
-      addLog('💡 Hint: Missing token parameter in URL')
+      logMessage('💡 Hint: Missing token parameter in URL', addLog)
     } else if (!params.apikey) {
-      addLog('💡 Hint: Missing apikey parameter in URL')
+      logMessage('💡 Hint: Missing apikey parameter in URL', addLog)
     }
     
     // Check if the base URL is accessible
     const baseUrl = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
-    addLog(`💡 Hint: Verify that the WebSocket server is running at ${baseUrl}`)
+    logMessage(`💡 Hint: Verify that the WebSocket server is running at ${baseUrl}`, addLog)
   })
 }
 
@@ -133,34 +138,34 @@ function connectSocket(addLog: LogFunction): void {
       if (!params.token) missing.push('token')
       if (!params.apikey) missing.push('apikey')
       
-      addLog(`❌ Missing required parameters: ${missing.join(', ')}`)
-      addLog('💡 Hint: Add the missing parameters to your URL: ?token=YOUR_TOKEN&apikey=YOUR_API_KEY')
+      logMessage(`❌ Missing required parameters: ${missing.join(', ')}`, addLog)
+      logMessage('💡 Hint: Add the missing parameters to your URL: ?token=YOUR_TOKEN&apikey=YOUR_API_KEY', addLog)
       return
     }
     
-    addLog(`🔐 Connecting with token: ${params.token.substring(0, 8)}... and apikey: ${params.apikey.substring(0, 8)}...`)
+    logMessage(`🔐 Connecting with token: ${params.token.substring(0, 8)}... and apikey: ${params.apikey.substring(0, 8)}...`, addLog)
     initConnection(null, addLog)
   } catch (err) {
-    addLog('❌ Connect failed: ' + err)
-    addLog('💡 Hint: Check your network connection and server availability')
+    logMessage('❌ Connect failed: ' + err, addLog)
+    logMessage('💡 Hint: Check your network connection and server availability', addLog)
   }
 }
 
 function disconnectSocket(addLog: LogFunction): void {
   if (!socket) {
-    addLog('ℹ️ WebSocket already disconnected')
+    logMessage('ℹ️ WebSocket already disconnected', addLog)
     return
   }
   
   try {
     if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
       socket.close(1000, 'Client requested disconnect')
-      addLog('🔌 Disconnecting WebSocket...')
+      logMessage('🔌 Disconnecting WebSocket...', addLog)
     }
     socket = null
     connected.value = false
   } catch (err) {
-    addLog('❌ Error while closing socket: ' + err)
+    logMessage('❌ Error while closing socket: ' + err, addLog)
     // Force cleanup even if close failed
     socket = null
     connected.value = false
@@ -172,8 +177,8 @@ function sendWSMessage(payload: string | object, addLog: LogFunction): boolean {
   const msg: string = typeof payload === 'string' ? payload : JSON.stringify(payload)
   
   if (!socket) {
-    addLog('❌ Cannot send: WebSocket is not initialized')
-    addLog('💡 Hint: Connection may have failed during startup')
+    logMessage('❌ Cannot send: WebSocket is not initialized', addLog)
+    logMessage('💡 Hint: Connection may have failed during startup', addLog)
     return false
   }
   
@@ -185,12 +190,12 @@ function sendWSMessage(payload: string | object, addLog: LogFunction): boolean {
     }
     const stateName = stateNames[socket.readyState] || 'UNKNOWN'
     
-    addLog(`❌ Cannot send: WebSocket is in ${stateName} state`)
+    logMessage(`❌ Cannot send: WebSocket is in ${stateName} state`, addLog)
     
     if (socket.readyState === WebSocket.CLOSED) {
-      addLog('💡 Hint: Connection was lost. The page will attempt to reconnect automatically.')
+      logMessage('💡 Hint: Connection was lost. The page will attempt to reconnect automatically.', addLog)
     } else if (socket.readyState === WebSocket.CONNECTING) {
-      addLog('💡 Hint: Still connecting... Please wait a moment and try again.')
+      logMessage('💡 Hint: Still connecting... Please wait a moment and try again.', addLog)
     }
     
     return false
@@ -198,11 +203,11 @@ function sendWSMessage(payload: string | object, addLog: LogFunction): boolean {
 
   try {
     socket.send(msg)
-    addLog('✅ Sent: ' + (msg.length > 200 ? msg.slice(0, 200) + '... (truncated)' : msg))
+    logMessage('✅ Sent: ' + (msg.length > 200 ? msg.slice(0, 200) + '... (truncated)' : msg), addLog)
     return true
   } catch (err) {
-    addLog('❌ Send failed: ' + err)
-    addLog('💡 Hint: The connection may have been interrupted. Check your network connection.')
+    logMessage('❌ Send failed: ' + err, addLog)
+    logMessage('💡 Hint: The connection may have been interrupted. Check your network connection.', addLog)
     return false
   }
 }
