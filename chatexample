@@ -1,1 +1,224 @@
 
+// WebSocket utility functions
+import { ref, type Ref } from 'vue'
+
+// Types
+interface QueryParameters {
+  token: string | null
+  apikey: string | null
+}
+
+type LogFunction = (message: string) => void
+
+// WebSocket state
+let socket: WebSocket | null = null
+const connected: Ref<boolean> = ref(false)
+
+// --- Helper functions ---
+function getQueryParameters(): QueryParameters {
+  const urlParams = new URLSearchParams(window.location.search)
+  return {
+    token: urlParams.get('token'),
+    apikey: urlParams.get('apikey')
+  }
+}
+
+function buildWebSocketUrl(): string {
+  const baseUrl: string = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
+  const params = getQueryParameters()
+  
+  // Only add query parameters if they exist
+  const queryParams = new URLSearchParams()
+  if (params.token) queryParams.append('token', params.token)
+  if (params.apikey) queryParams.append('apikey', params.apikey)
+  
+  const queryString = queryParams.toString()
+  return queryString ? `${baseUrl}?${queryString}` : baseUrl
+}
+
+// --- WebSocket management functions ---
+function initConnection(url: string | null = null, addLog: LogFunction): void {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    addLog('WebSocket already open')
+    return
+  }
+
+  const wsUrl: string = url || buildWebSocketUrl()
+  socket = new WebSocket(wsUrl)
+
+  socket.addEventListener('open', () => {
+    connected.value = true
+    addLog(`Connected to ${wsUrl}`)
+  })
+
+  socket.addEventListener('message', (ev: MessageEvent) => {
+    addLog('Received: ' + ev.data)
+  })
+
+  socket.addEventListener('close', (ev: CloseEvent) => {
+    connected.value = false
+    
+    // Provide specific hints based on close codes
+    let closeMessage = `Socket closed (code=${ev.code})`
+    let hint = ''
+    
+    switch (ev.code) {
+      case 1000:
+        closeMessage += ' - Normal closure'
+        break
+      case 1001:
+        closeMessage += ' - Going away'
+        break
+      case 1002:
+        closeMessage += ' - Protocol error'
+        break
+      case 1003:
+        closeMessage += ' - Unsupported data type'
+        break
+      case 1006:
+        closeMessage += ' - Abnormal closure'
+        hint = 'Check if the WebSocket server is running and accessible'
+        break
+      case 1011:
+        closeMessage += ' - Server error'
+        hint = 'The server encountered an unexpected condition'
+        break
+      case 4001:
+        closeMessage += ' - Unauthorized'
+        hint = 'API key is not correct. Please check your apikey parameter in the URL'
+        break
+      case 4003:
+        closeMessage += ' - Forbidden'
+        hint = 'Token is not valid. Please check your token parameter in the URL'
+        break
+      default:
+        if (ev.code >= 4000 && ev.code <= 4999) {
+          closeMessage += ' - Application specific error'
+        }
+        break
+    }
+    
+    addLog(closeMessage)
+    if (hint) {
+      addLog(`💡 Hint: ${hint}`)
+    }
+  })
+
+  socket.addEventListener('error', () => {
+    addLog('❌ Socket error occurred')
+    
+    // Check if we have connection details to provide better error context
+    const params = getQueryParameters()
+    if (!params.token && !params.apikey) {
+      addLog('💡 Hint: No authentication parameters found in URL. Add ?token=YOUR_TOKEN&apikey=YOUR_API_KEY to the page URL')
+    } else if (!params.token) {
+      addLog('💡 Hint: Missing token parameter in URL')
+    } else if (!params.apikey) {
+      addLog('💡 Hint: Missing apikey parameter in URL')
+    }
+    
+    // Check if the base URL is accessible
+    const baseUrl = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
+    addLog(`💡 Hint: Verify that the WebSocket server is running at ${baseUrl}`)
+  })
+}
+
+function connectSocket(addLog: LogFunction): void {
+  try {
+    const params = getQueryParameters()
+    
+    // Validate required parameters before attempting connection
+    if (!params.token || !params.apikey) {
+      const missing = []
+      if (!params.token) missing.push('token')
+      if (!params.apikey) missing.push('apikey')
+      
+      addLog(`❌ Missing required parameters: ${missing.join(', ')}`)
+      addLog('💡 Hint: Add the missing parameters to your URL: ?token=YOUR_TOKEN&apikey=YOUR_API_KEY')
+      return
+    }
+    
+    addLog(`🔐 Connecting with token: ${params.token.substring(0, 8)}... and apikey: ${params.apikey.substring(0, 8)}...`)
+    initConnection(null, addLog)
+  } catch (err) {
+    addLog('❌ Connect failed: ' + err)
+    addLog('💡 Hint: Check your network connection and server availability')
+  }
+}
+
+function disconnectSocket(addLog: LogFunction): void {
+  if (!socket) {
+    addLog('ℹ️ WebSocket already disconnected')
+    return
+  }
+  
+  try {
+    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+      socket.close(1000, 'Client requested disconnect')
+      addLog('🔌 Disconnecting WebSocket...')
+    }
+    socket = null
+    connected.value = false
+  } catch (err) {
+    addLog('❌ Error while closing socket: ' + err)
+    // Force cleanup even if close failed
+    socket = null
+    connected.value = false
+  }
+}
+
+function sendWSMessage(payload: string | object, addLog: LogFunction): boolean {
+  // ensure payload is string
+  const msg: string = typeof payload === 'string' ? payload : JSON.stringify(payload)
+  
+  if (!socket) {
+    addLog('❌ Cannot send: WebSocket is not initialized')
+    addLog('💡 Hint: Connection may have failed during startup')
+    return false
+  }
+  
+  if (socket.readyState !== WebSocket.OPEN) {
+    const stateNames: Record<number, string> = {
+      [WebSocket.CONNECTING]: 'CONNECTING',
+      [WebSocket.CLOSING]: 'CLOSING', 
+      [WebSocket.CLOSED]: 'CLOSED'
+    }
+    const stateName = stateNames[socket.readyState] || 'UNKNOWN'
+    
+    addLog(`❌ Cannot send: WebSocket is in ${stateName} state`)
+    
+    if (socket.readyState === WebSocket.CLOSED) {
+      addLog('💡 Hint: Connection was lost. The page will attempt to reconnect automatically.')
+    } else if (socket.readyState === WebSocket.CONNECTING) {
+      addLog('💡 Hint: Still connecting... Please wait a moment and try again.')
+    }
+    
+    return false
+  }
+
+  try {
+    socket.send(msg)
+    addLog('✅ Sent: ' + (msg.length > 200 ? msg.slice(0, 200) + '... (truncated)' : msg))
+    return true
+  } catch (err) {
+    addLog('❌ Send failed: ' + err)
+    addLog('💡 Hint: The connection may have been interrupted. Check your network connection.')
+    return false
+  }
+}
+
+// convenience wrapper
+function sendMessageToServer(message: string | object, addLog: LogFunction): boolean {
+  return sendWSMessage(message, addLog)
+}
+
+export {
+  connected,
+  initConnection,
+  connectSocket,
+  disconnectSocket,
+  sendWSMessage,
+  sendMessageToServer
+}
+
+export type { QueryParameters, LogFunction }
