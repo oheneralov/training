@@ -1,119 +1,160 @@
-// WebSocket utility functions
-import { ref, type Ref } from 'vue'
+<template>
+  <div class="app-container">
+    <h2>CSV + Text WebSocket Uploader</h2>
 
-// Types
-interface QueryParameters {
-  token: string | null
-  apikey: string | null
-}
+    <label for="text">Text input</label>
+    <textarea id="text" v-model="text" rows="6" placeholder="Enter text here..."></textarea>
 
-type LogFunction = (message: string) => void
+    <div class="file-row">
+      <button @click="triggerFilePick">Add CSV file</button>
+      <input ref="fileInput" type="file" accept=".csv,text/csv" @change="onFileChange" style="display: none" />
+      <span class="filename" v-if="fileName">{{ fileName }}</span>
+      <span class="nofile" v-else>No file selected</span>
+    </div>
 
-// WebSocket state
-let socket: WebSocket | null = null
-const connected: Ref<boolean> = ref(false)
+    <div class="controls">
+      <button @click="handleSubmit">Submit</button>
+    </div>
 
-// --- Helper functions ---
-function getQueryParameters(): QueryParameters {
-  const urlParams = new URLSearchParams(window.location.search)
-  return {
-    token: urlParams.get('token'),
-    apikey: urlParams.get('apikey')
-  }
-}
+    <div class="status">
+      <strong>WebSocket status:</strong> <span>{{ connected ? 'Connected' : 'Disconnected' }}</span>
+    </div>
 
-function buildWebSocketUrl(): string {
-  const baseUrl: string = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
-  const params = getQueryParameters()
-  
-  // Only add query parameters if they exist
-  const queryParams = new URLSearchParams()
-  if (params.token) queryParams.append('token', params.token)
-  if (params.apikey) queryParams.append('apikey', params.apikey)
-  
-  const queryString = queryParams.toString()
-  return queryString ? `${baseUrl}?${queryString}` : baseUrl
-}
+    <div class="log">
+      <h3>Messages / Log</h3>
+      <div class="log-lines">
+        <div v-for="(m, i) in logs" :key="i" class="log-line">{{ m }}</div>
+      </div>
+    </div>
+  </div>
+</template>
 
-// --- WebSocket management functions ---
-function initConnection(url: string | null = null, addLog: LogFunction): void {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    addLog('WebSocket already open')
-    return
-  }
-
-  const wsUrl: string = url || buildWebSocketUrl()
-  socket = new WebSocket(wsUrl)
-
-  socket.addEventListener('open', () => {
-    connected.value = true
-    addLog(`Connected to ${wsUrl}`)
-  })
-
-  socket.addEventListener('message', (ev: MessageEvent) => {
-    addLog('Received: ' + ev.data)
-  })
-
-  socket.addEventListener('close', (ev: CloseEvent) => {
-    connected.value = false
-    addLog(`Socket closed (code=${ev.code})`)
-  })
-
-  socket.addEventListener('error', () => {
-    addLog('Socket error')
-  })
-}
-
-function connectSocket(addLog: LogFunction): void {
-  try {
-    initConnection(null, addLog)
-  } catch (err) {
-    addLog('Connect failed: ' + err)
-  }
-}
-
-function disconnectSocket(addLog: LogFunction): void {
-  if (!socket) return
-  try {
-    socket.close()
-    socket = null
-    connected.value = false
-    addLog('Socket closed by client')
-  } catch (err) {
-    addLog('Error while closing socket: ' + err)
-  }
-}
-
-function sendWSMessage(payload: string | object, addLog: LogFunction): boolean {
-  // ensure payload is string
-  const msg: string = typeof payload === 'string' ? payload : JSON.stringify(payload)
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    addLog('Cannot send: socket is not open')
-    return false
-  }
-
-  try {
-    socket.send(msg)
-    addLog('Sent: ' + (msg.length > 200 ? msg.slice(0, 200) + '... (truncated)' : msg))
-    return true
-  } catch (err) {
-    addLog('Send failed: ' + err)
-    return false
-  }
-}
-
-// convenience wrapper
-function sendMessageToServer(message: string | object, addLog: LogFunction): boolean {
-  return sendWSMessage(message, addLog)
-}
-
-export {
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+import {
   connected,
-  initConnection,
   connectSocket,
   disconnectSocket,
-  sendWSMessage,
   sendMessageToServer
+} from './utils/websocket'
+
+// --- reactive state ---
+const text = ref('')
+const fileInput = ref(null)
+const fileName = ref('')
+let selectedFile = null
+
+const logs = ref([])
+
+// --- helper logging ---
+function addLog(msg) {
+  const time = new Date().toLocaleTimeString()
+  logs.value.unshift(`[${time}] ${msg}`)
+  // keep logs reasonably short
+  if (logs.value.length > 200) logs.value.pop()
 }
 
-export type { QueryParameters, LogFunction }
+// --- file helpers ---
+function triggerFilePick() {
+  fileInput.value && fileInput.value.click()
+}
+
+function onFileChange(e) {
+  const f = e.target.files && e.target.files[0]
+  if (!f) return
+  selectedFile = f
+  fileName.value = f.name
+  addLog(`Selected file: ${f.name} (${f.size} bytes)`)
+}
+
+async function readSelectedFileText() {
+  if (!selectedFile) return ''
+  // modern File API supports text() returning a promise
+  try {
+    const txt = await selectedFile.text()
+    return txt
+  } catch (err) {
+    addLog('Failed to read file: ' + err)
+    return ''
+  }
+}
+
+
+
+// --- submit handler ---
+async function handleSubmit() {
+  // read file if present
+  const fileContent = await readSelectedFileText()
+
+  // concatenation: textarea text + 'delimiter' + file content
+  const concatenated = `${text.value}delimiter${fileContent}`
+
+  // send via websockets
+  const ok = sendMessageToServer(concatenated, addLog)
+  if (!ok) {
+    addLog('Message not sent. Are you connected?')
+  }
+}
+
+// --- lifecycle hooks ---
+onMounted(() => {
+  connectSocket(addLog)
+})
+
+onUnmounted(() => {
+  disconnectSocket(addLog)
+})
+</script>
+
+<style scoped>
+.app-container {
+  max-width: 700px;
+  margin: 20px auto;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.file-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.status {
+  margin-bottom: 12px;
+}
+.log {
+  background: #fafafa;
+  border: 1px solid #eee;
+  padding: 8px;
+  border-radius: 6px;
+}
+.log-lines {
+  max-height: 220px;
+  overflow: auto;
+}
+.log-line {
+  font-family: monospace;
+  font-size: 12px;
+  padding: 2px 0;
+}
+.filename {
+  font-weight: 600;
+}
+.nofile {
+  color: #888;
+}
+</style>
