@@ -4,7 +4,7 @@ import { ref, type Ref } from 'vue'
 // Types
 interface QueryParameters {
   token: string | null
-  apikey: string | null
+  apiKey: string | null
 }
 
 type LogFunction = (message: string) => void
@@ -24,7 +24,7 @@ function getQueryParameters(): QueryParameters {
   const urlParams = new URLSearchParams(window.location.search)
   return {
     token: urlParams.get('token'),
-    apikey: urlParams.get('apikey')
+    apiKey: urlParams.get('apikey')
   }
 }
 
@@ -32,10 +32,10 @@ function buildWebSocketUrl(): string {
   const baseUrl: string = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
   const params = getQueryParameters()
   
-  // Only add query parameters if they exist
+  // Only add query parameters if they exist (URLSearchParams automatically handles encoding)
   const queryParams = new URLSearchParams()
-  if (params.token) queryParams.append('token', params.token)
-  if (params.apikey) queryParams.append('apikey', params.apikey)
+  if (params.token) queryParams.append('token', encodeURIComponent(params.token))
+  if (params.apiKey) queryParams.append('apikey', encodeURIComponent(params.apiKey))
   
   const queryString = queryParams.toString()
   return queryString ? `${baseUrl}?${queryString}` : baseUrl
@@ -114,11 +114,11 @@ function initConnection(url: string | null = null, addLog: LogFunction): void {
     
     // Check if we have connection details to provide better error context
     const params = getQueryParameters()
-    if (!params.token && !params.apikey) {
+    if (!params.token && !params.apiKey) {
       logMessage('💡 Hint: No authentication parameters found in URL. Add ?token=YOUR_TOKEN&apikey=YOUR_API_KEY to the page URL', addLog)
     } else if (!params.token) {
       logMessage('💡 Hint: Missing token parameter in URL', addLog)
-    } else if (!params.apikey) {
+    } else if (!params.apiKey) {
       logMessage('💡 Hint: Missing apikey parameter in URL', addLog)
     }
     
@@ -133,17 +133,17 @@ function connectSocket(addLog: LogFunction): void {
     const params = getQueryParameters()
     
     // Validate required parameters before attempting connection
-    if (!params.token || !params.apikey) {
+    if (!params.token || !params.apiKey) {
       const missing = []
       if (!params.token) missing.push('token')
-      if (!params.apikey) missing.push('apikey')
+      if (!params.apiKey) missing.push('apikey')
       
       logMessage(`❌ Missing required parameters: ${missing.join(', ')}`, addLog)
       logMessage('💡 Hint: Add the missing parameters to your URL: ?token=YOUR_TOKEN&apikey=YOUR_API_KEY', addLog)
       return
     }
     
-    logMessage(`🔐 Connecting with token: ${params.token.substring(0, 8)}... and apikey: ${params.apikey.substring(0, 8)}...`, addLog)
+    logMessage(`🔐 Connecting with token: ${params.token.substring(0, 8)}... and apikey: ${params.apiKey.substring(0, 8)}...`, addLog)
     initConnection(null, addLog)
   } catch (err) {
     logMessage('❌ Connect failed: ' + err, addLog)
