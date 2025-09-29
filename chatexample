@@ -1,1 +1,2 @@
 
+document.cookie = "session=abc123; path=/; Secure; SameSite=None";
