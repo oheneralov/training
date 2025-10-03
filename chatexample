@@ -1,2 +1,239 @@
+// WebSocket utility functions
+import { ref, type Ref } from 'vue'
 
-document.cookie = "session=abc123; path=/; Secure; SameSite=None";
+// Types
+interface QueryParameters {
+  token: string | null
+  apiKey: string | null
+}
+
+type LogFunction = (message: string) => void
+
+// Enhanced logging function that logs to both UI and console
+function logMessage(message: string, addLog: LogFunction): void {
+  addLog(message)
+  console.log(`[WebSocket] ${message}`)
+}
+
+// WebSocket state
+let socket: WebSocket | null = null
+const connected: Ref<boolean> = ref(false)
+const isWaitingForResponse: Ref<boolean> = ref(false)
+
+// --- Helper functions ---
+function getQueryParameters(): QueryParameters {
+  const urlParams = new URLSearchParams(window.location.search)
+  
+  // Get from environment variables first, then fallback to URL parameters
+  const token = import.meta.env.VITE_TOKEN || urlParams.get('token')
+  const apiKey = import.meta.env.VITE_API_KEY || urlParams.get('apikey')
+  
+  return {
+    token,
+    apiKey
+  }
+}
+
+function buildWebSocketUrl(): string {
+  const baseUrl: string = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
+  const params = getQueryParameters()
+  
+  // Only add query parameters if they exist (URLSearchParams automatically handles encoding)
+  const queryParams = new URLSearchParams()
+  if (params.token) queryParams.append('token', encodeURIComponent(params.token))
+  if (params.apiKey) queryParams.append('apikey', encodeURIComponent(params.apiKey))
+  
+  const queryString = queryParams.toString()
+  return queryString ? `${baseUrl}?${queryString}` : baseUrl
+}
+
+// --- WebSocket management functions ---
+function initConnection(url: string | null = null, addLog: LogFunction): void {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    logMessage('WebSocket already open', addLog)
+    return
+  }
+
+  const wsUrl: string = url || buildWebSocketUrl()
+  socket = new WebSocket(wsUrl)
+
+  socket.addEventListener('open', () => {
+    connected.value = true
+    logMessage(`Connected to ${wsUrl}`, addLog)
+  })
+
+  socket.addEventListener('message', (ev: MessageEvent) => {
+    isWaitingForResponse.value = false
+    logMessage('Received: ' + ev.data, addLog)
+  })
+
+  socket.addEventListener('close', (ev: CloseEvent) => {
+    connected.value = false
+    isWaitingForResponse.value = false
+    
+    // Provide specific hints based on close codes
+    let closeMessage = `Socket closed (code=${ev.code})`
+    let hint = ''
+    
+    switch (ev.code) {
+      case 1000:
+        closeMessage += ' - Normal closure'
+        break
+      case 1001:
+        closeMessage += ' - Going away'
+        break
+      case 1002:
+        closeMessage += ' - Protocol error'
+        break
+      case 1003:
+        closeMessage += ' - Unsupported data type'
+        break
+      case 1006:
+        closeMessage += ' - Abnormal closure'
+        hint = 'Check if the WebSocket server is running and accessible'
+        break
+      case 1011:
+        closeMessage += ' - Server error'
+        hint = 'The server encountered an unexpected condition'
+        break
+      case 4001:
+        closeMessage += ' - Unauthorized'
+        hint = 'API key is not correct. Please check your apikey parameter in the URL'
+        break
+      case 4003:
+        closeMessage += ' - Forbidden'
+        hint = 'Token is not valid. Please check your token parameter in the URL'
+        break
+      default:
+        if (ev.code >= 4000 && ev.code <= 4999) {
+          closeMessage += ' - Application specific error'
+        }
+        break
+    }
+    
+    logMessage(closeMessage, addLog)
+    if (hint) {
+      logMessage(`💡 Hint: ${hint}`, addLog)
+    }
+  })
+
+  socket.addEventListener('error', () => {
+    logMessage('❌ Socket error occurred', addLog)
+    
+    // Check if we have connection details to provide better error context
+    const params = getQueryParameters()
+    if (!params.token && !params.apiKey) {
+      logMessage('💡 Hint: No authentication parameters found in URL. Add ?token=YOUR_TOKEN&apikey=YOUR_API_KEY to the page URL', addLog)
+    } else if (!params.token) {
+      logMessage('💡 Hint: Missing token parameter in URL', addLog)
+    } else if (!params.apiKey) {
+      logMessage('💡 Hint: Missing apikey parameter in URL', addLog)
+    }
+    
+    // Check if the base URL is accessible
+    const baseUrl = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'
+    logMessage(`💡 Hint: Verify that the WebSocket server is running at ${baseUrl}`, addLog)
+  })
+}
+
+function connectSocket(addLog: LogFunction): void {
+  try {
+    const params = getQueryParameters()
+    
+    // Validate required parameters before attempting connection
+    if (!params.token || !params.apiKey) {
+      const missing = []
+      if (!params.token) missing.push('token')
+      if (!params.apiKey) missing.push('apikey')
+      
+      logMessage(`❌ Missing required parameters: ${missing.join(', ')}`, addLog)
+      logMessage('💡 Hint: Add the missing parameters to your URL: ?token=YOUR_TOKEN&apikey=YOUR_API_KEY', addLog)
+      return
+    }
+    
+    logMessage(`🔐 Connecting with token: ${params.token.substring(0, 8)}... and apikey: ${params.apiKey.substring(0, 8)}...`, addLog)
+    initConnection(null, addLog)
+  } catch (err) {
+    logMessage('❌ Connect failed: ' + err, addLog)
+    logMessage('💡 Hint: Check your network connection and server availability', addLog)
+  }
+}
+
+function disconnectSocket(addLog: LogFunction): void {
+  if (!socket) {
+    logMessage('ℹ️ WebSocket already disconnected', addLog)
+    return
+  }
+  
+  try {
+    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+      socket.close(1000, 'Client requested disconnect')
+      logMessage('🔌 Disconnecting WebSocket...', addLog)
+    }
+    socket = null
+    connected.value = false
+  } catch (err) {
+    logMessage('❌ Error while closing socket: ' + err, addLog)
+    // Force cleanup even if close failed
+    socket = null
+    connected.value = false
+  }
+}
+
+function sendWSMessage(payload: string | object, addLog: LogFunction): boolean {
+  // ensure payload is string
+  const msg: string = typeof payload === 'string' ? payload : JSON.stringify(payload)
+  
+  if (!socket) {
+    logMessage('❌ Cannot send: WebSocket is not initialized', addLog)
+    logMessage('💡 Hint: Connection may have failed during startup', addLog)
+    return false
+  }
+  
+  if (socket.readyState !== WebSocket.OPEN) {
+    const stateNames: Record<number, string> = {
+      [WebSocket.CONNECTING]: 'CONNECTING',
+      [WebSocket.CLOSING]: 'CLOSING', 
+      [WebSocket.CLOSED]: 'CLOSED'
+    }
+    const stateName = stateNames[socket.readyState] || 'UNKNOWN'
+    
+    logMessage(`❌ Cannot send: WebSocket is in ${stateName} state`, addLog)
+    
+    if (socket.readyState === WebSocket.CLOSED) {
+      logMessage('💡 Hint: Connection was lost. The page will attempt to reconnect automatically.', addLog)
+    } else if (socket.readyState === WebSocket.CONNECTING) {
+      logMessage('💡 Hint: Still connecting... Please wait a moment and try again.', addLog)
+    }
+    
+    return false
+  }
+
+  try {
+    socket.send(msg)
+    isWaitingForResponse.value = true
+    logMessage('✅ Sent: ' + (msg.length > 200 ? msg.slice(0, 200) + '... (truncated)' : msg), addLog)
+    return true
+  } catch (err) {
+    logMessage('❌ Send failed: ' + err, addLog)
+    logMessage('💡 Hint: The connection may have been interrupted. Check your network connection.', addLog)
+    return false
+  }
+}
+
+// convenience wrapper
+function sendMessageToServer(message: string | object, addLog: LogFunction): boolean {
+  return sendWSMessage(message, addLog)
+}
+
+export {
+  connected,
+  isWaitingForResponse,
+  initConnection,
+  connectSocket,
+  disconnectSocket,
+  sendWSMessage,
+  sendMessageToServer
+}
+
+export type { QueryParameters, LogFunction }
